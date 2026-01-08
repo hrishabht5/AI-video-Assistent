@@ -165,10 +165,16 @@ if Vid:
                 final_output = f"{clean_title}_{session_id}_short.mp4"
                 
                 print("Step 4/4: Adding audio to final video...")
-                combine_videos(temp_clip, temp_subtitled, final_output)
-                print(f"\n{'='*60}")
-                print(f"✓ SUCCESS: {final_output} is ready!")
-                print(f"{'='*60}\n")
+                success = combine_videos(temp_clip, temp_subtitled, final_output)
+                
+                if success:
+                    print(f"\n{'='*60}")
+                    print(f"✓ SUCCESS: {final_output} is ready!")
+                    print(f"{'='*60}\n")
+                else:
+                    print(f"\n{'='*60}")
+                    print(f"✗ FAILED: Could not create the final video.")
+                    print(f"{'='*60}\n")
                 
                 # Clean up temporary files
                 try:
