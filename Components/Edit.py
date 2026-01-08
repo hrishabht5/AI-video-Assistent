@@ -23,7 +23,8 @@ def crop_video(input_file, output_file, start_time, end_time):
             end_time = max_time
         
         cropped_video = video.subclip(start_time, end_time)
-        cropped_video.write_videofile(output_file, codec='libx264')
+        # Using a fast preset to speed up re-encoding
+        cropped_video.write_videofile(output_file, codec='libx264', preset='ultrafast', logger=None)
 
 # Example usage:
 if __name__ == "__main__":

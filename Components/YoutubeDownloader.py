@@ -1,4 +1,5 @@
 import os
+import re
 from pytubefix import YouTube
 import ffmpeg
 
@@ -15,7 +16,8 @@ def download_youtube_video(url):
 
         # Show available streams
         print("\nAvailable video streams:")
-        for i, stream in enumerate(video_streams[:5]):  # Show top 5 options
+        top_streams = video_streams[:8]  # Show more options to find 1080p
+        for i, stream in enumerate(top_streams):
             size = get_video_size(stream)
             stream_type = "Progressive" if stream.is_progressive else "Adaptive"
             print(f"  {i}. Resolution: {stream.resolution}, Size: {size:.2f} MB, Type: {stream_type}")
@@ -24,8 +26,15 @@ def download_youtube_video(url):
         import select
         import sys
         
-        print("\nSelect resolution number (0-4) or wait 5s for auto-select...")
-        print("Auto-selecting highest quality in 5 seconds...")
+        # Try to find 1080p stream index for auto-select
+        auto_index = 0
+        for i, s in enumerate(top_streams):
+            if s.resolution == '1080p':
+                auto_index = i
+                break
+
+        print(f"\nSelect resolution number (0-{len(top_streams)-1}) or wait 5s for auto-select...")
+        print(f"Auto-selecting {top_streams[auto_index].resolution} quality in 5 seconds...")
         
         selected_stream = None
         try:
@@ -34,25 +43,25 @@ def download_youtube_video(url):
                 user_input = sys.stdin.readline().strip()
                 if user_input.isdigit():
                     choice = int(user_input)
-                    if 0 <= choice < len(video_streams):
-                        selected_stream = video_streams[choice]
+                    if 0 <= choice < len(top_streams):
+                        selected_stream = top_streams[choice]
                         print(f"✓ User selected: {selected_stream.resolution}")
                     else:
-                        print("Invalid choice, using highest quality")
-                        selected_stream = video_streams[0]
+                        print(f"Invalid choice, using {top_streams[auto_index].resolution} quality")
+                        selected_stream = top_streams[auto_index]
                 else:
-                    print("Invalid input, using highest quality")
-                    selected_stream = video_streams[0]
+                    print(f"Invalid input, using {top_streams[auto_index].resolution} quality")
+                    selected_stream = top_streams[auto_index]
             else:
-                print("\nTimeout - auto-selecting highest quality")
-                selected_stream = video_streams[0]
+                print(f"\nTimeout - auto-selecting {top_streams[auto_index].resolution} quality")
+                selected_stream = top_streams[auto_index]
         except:
-            print("\nAuto-selecting highest quality (timeout not available on this platform)")
-            selected_stream = video_streams[0]
+            print(f"\nAuto-selecting {top_streams[auto_index].resolution} quality (timeout not available on this platform)")
+            selected_stream = top_streams[auto_index]
         
         # Confirm selection
         if selected_stream is None:
-            selected_stream = video_streams[0]
+            selected_stream = top_streams[auto_index]
         
         size = get_video_size(selected_stream)
         stream_type = "Progressive" if selected_stream.is_progressive else "Adaptive"
@@ -68,12 +77,24 @@ def download_youtube_video(url):
             print("Downloading audio...")
             audio_file = audio_stream.download(output_path='videos', filename_prefix="audio_")
 
-            print("Merging video and audio...")
-            output_file = os.path.join('videos', f"{yt.title}.mp4")
-            stream = ffmpeg.input(video_file)
-            audio = ffmpeg.input(audio_file)
-            stream = ffmpeg.output(stream, audio, output_file, vcodec='libx264', acodec='aac', strict='experimental')
-            ffmpeg.run(stream, overwrite_output=True)
+            print("Merging video and audio with hardware acceleration...")
+            # Sanitize title for filename to avoid "Invalid argument" errors (e.g., characters like '|')
+            safe_title = re.sub(r'[<>:"/\\|?*]', '', yt.title)
+            output_file = os.path.join('videos', f"{safe_title}.mp4")
+            
+            # Use h264_nvenc for much faster merging if possible
+            try:
+                stream = ffmpeg.input(video_file)
+                audio = ffmpeg.input(audio_file)
+                # Try NVENC first - using standard parameters for better compatibility
+                stream = ffmpeg.output(stream, audio, output_file, vcodec='h264_nvenc', acodec='aac', strict='experimental')
+                ffmpeg.run(stream, overwrite_output=True)
+            except ffmpeg.Error:
+                print("NVENC failed or not available, falling back to CPU (libx264 veryfast)")
+                stream = ffmpeg.input(video_file)
+                audio = ffmpeg.input(audio_file)
+                stream = ffmpeg.output(stream, audio, output_file, vcodec='libx264', acodec='aac', strict='experimental', preset='veryfast')
+                ffmpeg.run(stream, overwrite_output=True)
 
             os.remove(video_file)
             os.remove(audio_file)
@@ -82,7 +103,7 @@ def download_youtube_video(url):
 
         
         print(f"Downloaded: {yt.title} to 'videos' folder")
-        print(f"File path: {output_file}")
+        # Ensure we return a path with the same sanitized title used in downloading/merging
         return output_file
 
     except Exception as e:

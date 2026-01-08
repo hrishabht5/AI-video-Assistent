@@ -87,7 +87,7 @@ if Vid:
                 print("ERROR: Failed to get highlight from LLM")
                 print(f"{'='*60}")
                 print("This could be due to:")
-                print("  - OpenAI API issues or rate limiting")
+                print("  - Gemini API issues or rate limiting")
                 print("  - Invalid API key")
                 print("  - Network connectivity problems")
                 print("  - Malformed transcription data")
@@ -147,7 +147,7 @@ if Vid:
             
             print(f"\n✓ Final highlight: {start}s - {stop}s")
             #handle the case when the highlight starts from 0s
-            if start>0 and stop>0 and stop>start:
+            if start>=0 and stop>0 and stop>start:
                 print(f"\nCreating short video: {start}s - {stop}s ({stop-start}s duration)")
                 print(f"Start: {start} , End: {stop}")
 

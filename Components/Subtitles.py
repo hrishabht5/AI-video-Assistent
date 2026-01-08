@@ -47,23 +47,29 @@ def add_subtitles_to_video(input_video, output_video, transcriptions, video_star
             continue
             
         # Create text clip with styling
-        txt_clip = TextClip(
-            text,
-            fontsize=dynamic_fontsize,
-            color='#2699ff',
-            stroke_color='black',
-            stroke_width=2,
-            font='Franklin-Gothic',
-            method='caption',
-            size=(video.w - 100, None)  # Leave 50px margin on each side
-        )
-        
-        # Position at bottom center
-        txt_clip = txt_clip.set_position(('center', video.h - txt_clip.h - 100))
-        txt_clip = txt_clip.set_start(start)
-        txt_clip = txt_clip.set_duration(end - start)
-        
-        text_clips.append(txt_clip)
+        try:
+            txt_clip = TextClip(
+                text,
+                fontsize=dynamic_fontsize,
+                color='#2699ff',
+                stroke_color='black',
+                stroke_width=2,
+                font='Franklin-Gothic',
+                method='caption',
+                size=(video.w - 100, None)  # Leave 50px margin on each side
+            )
+            
+            # Position at bottom center
+            txt_clip = txt_clip.set_position(('center', video.h - txt_clip.h - 100))
+            txt_clip = txt_clip.set_start(start)
+            txt_clip = txt_clip.set_duration(end - start)
+            
+            text_clips.append(txt_clip)
+        except Exception as e:
+            print(f"Warning: Could not create subtitle clip using ImageMagick: {e}")
+            print("Subtitles will be skipped. Please install ImageMagick to enable them.")
+            break # Stop trying to create more clips if one fails
+
     
     # Composite video with subtitles
     print(f"Adding {len(text_clips)} subtitle segments to video...")

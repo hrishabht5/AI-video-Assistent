@@ -180,7 +180,15 @@ def combine_videos(video_with_audio, video_without_audio, output_filename):
         combined_clip = clip_without_audio.set_audio(audio)
 
         global Fps
-        combined_clip.write_videofile(output_filename, codec='libx264', audio_codec='aac', fps=Fps, preset='medium', bitrate='3000k')
+        print(f"Rendering final video with hardware acceleration (NVENC) at {Fps} FPS...")
+        # Using h264_nvenc with default parameters for maximum compatibility
+        combined_clip.write_videofile(
+            output_filename, 
+            codec='h264_nvenc', 
+            audio_codec='aac', 
+            fps=Fps,
+            logger=None
+        )
         print(f"Combined video saved successfully as {output_filename}")
     
     except Exception as e:

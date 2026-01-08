@@ -4,10 +4,10 @@ import os
 
 load_dotenv()
 
-api_key = os.getenv("OPENAI_API")
+api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
-    raise ValueError("API key not found. Make sure it is defined in the .env file.")
+    raise ValueError("GEMINI_API_KEY not found. Please set it in the .env file. Get one for free at https://aistudio.google.com/app/apikey")
 
 class JSONResponse(BaseModel):
     """
@@ -43,33 +43,59 @@ Return a JSON object with the following structure:
 """
 
 # User = """
-# Example
+# This is a transcript about a video describing how to bake a cake. 
+# First, you mix the flour and sugar. Then add eggs and milk. 
+# Whisk it all together until smooth. Pour into a pan and bake at 350 degrees for 30 minutes. 
+# The result is a delicious fluffy cake.
 # """
 
 
 
 
 def GetHighlight(Transcription):
-    from langchain_openai import ChatOpenAI
-    
+    import google.generativeai as genai
+    import json
+
     try:
-        llm = ChatOpenAI(
-            model="gpt-5-nano",  # Much cheaper than gpt-4o
-            temperature=1.0,
-            api_key = api_key
+        print("Initializing Gemini 2.5 Flash (Native SDK)...")
+        genai.configure(api_key=api_key)
+        
+        # improved system prompt for JSON validation
+        full_system_prompt = system + "\nIMPORTANT: You must return ONLY valid JSON. No markdown formatting."
+        
+        model = genai.GenerativeModel(
+            model_name="gemini-2.5-flash",
+            generation_config={"response_mime_type": "application/json"}
         )
 
-        from langchain.prompts import ChatPromptTemplate
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system",system),
-                ("user",Transcription)
-            ]
-        )
-        chain = prompt |llm.with_structured_output(JSONResponse,method="function_calling")
+
+        print("Calling Gemini for highlight selection...")
+        chat = model.start_chat()
+        prompt_content = f"{full_system_prompt}\n\nInput:\n{Transcription}"
+        response_obj = chat.send_message(prompt_content)
         
-        print("Calling LLM for highlight selection...")
-        response = chain.invoke({"Transcription":Transcription})
+        try:
+             # Parse JSON response
+            response_json = json.loads(response_obj.text)
+            # Handle list or single object return
+            if isinstance(response_json, list) and len(response_json) > 0:
+                response_data = response_json[0]
+            else:
+                response_data = response_json
+                
+            # Create object to match previous structure
+            class ResponseObj:
+                def __init__(self, data):
+                    self.start = data.get('start')
+                    self.content = data.get('content')
+                    self.end = data.get('end')
+            
+            response = ResponseObj(response_data)
+            
+        except json.JSONDecodeError:
+            print(f"ERROR: Failed to decode JSON from Gemini: {response_obj.text}")
+            return None, None
+
         
         # Validate response
         if not response:
