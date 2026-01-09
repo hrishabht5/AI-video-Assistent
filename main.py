@@ -78,13 +78,13 @@ if Vid:
             for text, start, end in transcriptions:
                 TransText += (f"{start} - {end}: {text}\n")
 
-            print("Analyzing transcription to find best highlight...")
-            start , stop = GetHighlight(TransText)
+            print("Analyzing transcription to find best highlights...")
+            highlights = GetHighlight(TransText)
             
             # Check if GetHighlight failed
-            if start is None or stop is None:
+            if not highlights:
                 print(f"\n{'='*60}")
-                print("ERROR: Failed to get highlight from LLM")
+                print("ERROR: Failed to get highlights from AI")
                 print(f"{'='*60}")
                 print("This could be due to:")
                 print("  - Gemini API issues or rate limiting")
@@ -95,97 +95,66 @@ if Vid:
                 print(f"  Total segments: {len(transcriptions)}")
                 print(f"  Total length: {len(TransText)} characters")
                 print(f"{'='*60}\n")
-                sys.exit(1) # Exit gracefully
+                sys.exit(1)
             
-            # Interactive approval loop with timeout (skip if auto-approve)
-            import select
-            
-            approved = auto_approve  # Auto-approve if flag is set
-            
-            if not auto_approve:
-                while not approved:
-                    print(f"\n{'='*60}")
-                    print(f"SELECTED SEGMENT DETAILS:")
-                    print(f"Time: {start}s - {stop}s ({stop-start}s duration)")
-                    print(f"{'='*60}\n")
-                    
-                    print("Options:")
-                    print("  [Enter/y] Approve and continue")
-                    print("  [r] Regenerate selection")
-                    print("  [n] Cancel")
-                    print("\nAuto-approving in 15 seconds if no input...")
-                    
-                    regenerate = False
-                    
-                    try:
-                        # Check if stdin is ready within 15 seconds
-                        ready, _, _ = select.select([sys.stdin], [], [], 15)
-                        if ready:
-                            user_input = sys.stdin.readline().strip().lower()
-                            if user_input == 'r':
-                                print("\nRegenerating selection...")
-                                start, stop = GetHighlight(TransText)
-                                regenerate = True
-                            elif user_input == 'n':
-                                print("Cancelled by user")
-                                sys.exit(0)
-                            else:
-                                print("Approved by user")
-                                approved = True
-                        else:
-                            print("\nTimeout - auto-approving selection")
-                            approved = True
-                    except:
-                        # Fallback if select doesn't work (e.g., Windows)
-                        print("\nAuto-approving (timeout not available on this platform)")
-                        approved = True
-            else:
-                print(f"\n{'='*60}")
-                print(f"SELECTED SEGMENT: {start}s - {stop}s ({stop-start}s duration)")
-                print(f"{'='*60}")
-                print("Auto-approved (batch mode)\n")
-            
-            print(f"\n✓ Final highlight: {start}s - {stop}s")
-            #handle the case when the highlight starts from 0s
-            if start>=0 and stop>0 and stop>start:
-                print(f"\nCreating short video: {start}s - {stop}s ({stop-start}s duration)")
-                print(f"Start: {start} , End: {stop}")
+            print(f"\n✓ Found {len(highlights)} segments to process.")
 
-                print("Step 1/4: Extracting clip from original video...")
+            for i, highlight in enumerate(highlights):
+                start = highlight['start']
+                stop = highlight['end']
+                
+                #handle the case when the highlight starts from 0s
+                if not (start>=0 and stop>0 and stop>start):
+                    print(f"Skipping highlight {i+1} due to invalid time range: {start}s - {stop}s")
+                    continue
+
+                print(f"\n{'='*60}")
+                print(f"PROCESSING HIGHLIGHT {i+1}/{len(highlights)}")
+                print(f"Time: {start}s - {stop}s ({stop-start}s duration)")
+                print(f"{'='*60}\n")
+
+                # Create unique temporary filenames for this segment
+                # Note: main_audio_file is used for transcription, not for individual clips
+                temp_clip = f"temp_clip_{session_id}_{i}.mp4"
+                temp_cropped = f"temp_cropped_{session_id}_{i}.mp4"
+                temp_subtitled = f"temp_subtitled_{session_id}_{i}.mp4"
+
+                print(f"Step 1/4 (Part {i+1}): Extracting clip from original video...")
                 crop_video(Vid, temp_clip, start, stop)
 
-                print("Step 2/4: Cropping to vertical format (9:16)...")
+                print(f"Step 2/4 (Part {i+1}): Cropping to vertical format (9:16) with Active Tracking...")
                 crop_to_vertical(temp_clip, temp_cropped)
                 
-                print("Step 3/4: Adding subtitles to video...")
+                print(f"Step 3/4 (Part {i+1}): Adding subtitles to video...")
                 add_subtitles_to_video(temp_cropped, temp_subtitled, transcriptions, video_start_time=start)
                 
-                # Generate final output filename with random identifier
+                # Generate final output filename
                 clean_title = clean_filename(video_title) if video_title else "output"
-                final_output = f"{clean_title}_{session_id}_short.mp4"
+                final_output = f"{clean_title}_part{i+1}_{session_id}_short.mp4"
                 
-                print("Step 4/4: Adding audio to final video...")
+                print(f"Step 4/4 (Part {i+1}): Adding audio to final video...")
                 success = combine_videos(temp_clip, temp_subtitled, final_output)
                 
                 if success:
-                    print(f"\n{'='*60}")
-                    print(f"✓ SUCCESS: {final_output} is ready!")
-                    print(f"{'='*60}\n")
+                    print(f"\n✓ SUCCESS: Highlight {i+1} saved as {final_output}")
                 else:
-                    print(f"\n{'='*60}")
-                    print(f"✗ FAILED: Could not create the final video.")
-                    print(f"{'='*60}\n")
+                    print(f"\n✗ FAILED: Could not create Highlight {i+1}")
                 
-                # Clean up temporary files
+                # Clean up temporary files for this segment
                 try:
-                    for temp_file in [audio_file, temp_clip, temp_cropped, temp_subtitled]:
-                        if os.path.exists(temp_file):
-                            os.remove(temp_file)
-                    print(f"Cleaned up temporary files for session {session_id}")
+                    for f in [temp_clip, temp_cropped, temp_subtitled]:
+                        if os.path.exists(f):
+                            os.remove(f)
                 except Exception as e:
-                    print(f"Warning: Could not clean up some temporary files: {e}")
-            else:
-                print("Error in getting highlight")
+                    print(f"Warning: Cleanup failed for part {i+1}: {e}")
+
+            print(f"\n{'='*60}")
+            print(f"✓ ALL DONE: Processed {len(highlights)} highlights.")
+            print(f"{'='*60}\n")
+            
+            # Final cleanup
+            if os.path.exists(audio_file):
+                os.remove(audio_file)
         else:
             print("No transcriptions found")
     else:

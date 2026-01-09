@@ -26,26 +26,27 @@ class JSONResponse(BaseModel):
 
 system = """
 The input contains a timestamped transcription of a video.
-Select a 2-minute segment from the transcription that contains something interesting, useful, surprising, controversial, or thought-provoking.
+Select up to 10 interesting, useful, or thought-provoking segments from the transcription.
+Each segment should be between 30 to 90 seconds-long.
 The selected text should contain only complete sentences.
 Do not cut the sentences in the middle.
 The selected text should form a complete thought.
-Return a JSON object with the following structure:
-## Output 
-[{{
-    start: "Start time of the segment in seconds (number)",
-    content: "The transcribed text from the selected segment (clean text only, NO timestamps)",
-    end: "End time of the segment in seconds (number)"
-}}]
 
-## Input
-{Transcription}
+Return a JSON array of objects with the following structure:
+[
+  {
+    "start": Start time of the segment in seconds (number),
+    "content": "The transcribed text from the selected segment (clean text only, NO timestamps)",
+    "end": End time of the segment in seconds (number)
+  },
+  ...
+]
 """
 
 # User = """
-# This is a transcript about a video describing how to bake a cake. 
-# First, you mix the flour and sugar. Then add eggs and milk. 
-# Whisk it all together until smooth. Pour into a pan and bake at 350 degrees for 30 minutes. 
+# This is a transcript about a video describing how to bake a cake.
+# First, you mix the flour and sugar. Then add eggs and milk.
+# Whisk it all together until smooth. Pour into a pan and bake at 350 degrees for 30 minutes.
 # The result is a delicious fluffy cake.
 # """
 
@@ -57,93 +58,56 @@ def GetHighlight(Transcription):
     import json
 
     try:
-        print("Initializing Gemini 2.5 Flash (Native SDK)...")
+        print("Calling Gemini for multi-highlight selection...")
         genai.configure(api_key=api_key)
-        
+
         # improved system prompt for JSON validation
         full_system_prompt = system + "\nIMPORTANT: You must return ONLY valid JSON. No markdown formatting."
-        
+
         model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
+            model_name="gemini-2.0-flash", # Using 2.0 Flash for best speed/reliability
             generation_config={"response_mime_type": "application/json"}
         )
 
-
-        print("Calling Gemini for highlight selection...")
-        chat = model.start_chat()
         prompt_content = f"{full_system_prompt}\n\nInput:\n{Transcription}"
-        response_obj = chat.send_message(prompt_content)
-        
+        response_obj = model.generate_content(prompt_content)
+
         try:
-             # Parse JSON response
-            response_json = json.loads(response_obj.text)
-            # Handle list or single object return
-            if isinstance(response_json, list) and len(response_json) > 0:
-                response_data = response_json[0]
-            else:
-                response_data = response_json
-                
-            # Create object to match previous structure
-            class ResponseObj:
-                def __init__(self, data):
-                    self.start = data.get('start')
-                    self.content = data.get('content')
-                    self.end = data.get('end')
-            
-            response = ResponseObj(response_data)
-            
+            # Parse JSON response
+            highlights = json.loads(response_obj.text)
+
+            # Ensure it's a list
+            if not isinstance(highlights, list):
+                if isinstance(highlights, dict):
+                    highlights = [highlights]
+                else:
+                    print(f"ERROR: Unexpected response format: {type(highlights)}")
+                    return []
+
+            valid_highlights = []
+            for item in highlights:
+                try:
+                    start = float(item.get('start', 0))
+                    end = float(item.get('end', 0))
+                    content = item.get('content', "")
+
+                    if end > start and start >= 0:
+                        valid_highlights.append({
+                            'start': start,
+                            'end': end,
+                            'content': content
+                        })
+                except (ValueError, TypeError):
+                    continue
+
+            print(f"✓ Found {len(valid_highlights)} potential highlights.")
+            return valid_highlights
+
         except json.JSONDecodeError:
             print(f"ERROR: Failed to decode JSON from Gemini: {response_obj.text}")
-            return None, None
+            return []
 
-        
-        # Validate response
-        if not response:
-            print("ERROR: LLM returned empty response")
-            return None, None
-        
-        if not hasattr(response, 'start') or not hasattr(response, 'end'):
-            print(f"ERROR: Invalid response structure: {response}")
-            return None, None
-        
-        try:
-            Start = int(response.start)
-            End = int(response.end)
-        except (ValueError, TypeError) as e:
-            print(f"ERROR: Could not parse start/end times from response")
-            print(f"  response.start: {response.start}")
-            print(f"  response.end: {response.end}")
-            print(f"  Error: {e}")
-            return None, None
-        
-        # Validate times
-        if Start < 0 or End < 0:
-            print(f"ERROR: Negative time values - Start: {Start}s, End: {End}s")
-            return None, None
-        
-        if End <= Start:
-            print(f"ERROR: Invalid time range - Start: {Start}s, End: {End}s (end must be > start)")
-            return None, None
-        
-        # Log the selected segment
-        print(f"\n{'='*60}")
-        print(f"SELECTED SEGMENT DETAILS:")
-        print(f"Time: {Start}s - {End}s ({End-Start}s duration)")
-        print(f"Content: {response.content}")
-        print(f"{'='*60}\n")
-        
-        if Start==End:
-            Ask = input("Error - Get Highlights again (y/n) -> ").lower()
-            if Ask == "y":
-                Start, End = GetHighlight(Transcription)
-            return Start, End
-        return Start,End
-        
     except Exception as e:
-        print(f"\n{'='*60}")
-        print(f"ERROR IN GetHighlight FUNCTION:")
-        print(f"{'='*60}")
-        print(f"Exception type: {type(e).__name__}")
         print(f"Exception message: {str(e)}")
         print(f"\nTranscription length: {len(Transcription)} characters")
         print(f"First 200 chars: {Transcription[:200]}...")
