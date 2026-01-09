@@ -65,7 +65,7 @@ def GetHighlight(Transcription):
         full_system_prompt = system + "\nIMPORTANT: You must return ONLY valid JSON. No markdown formatting."
         
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash", # Use 1.5 Flash for much higher rate limits
+            model_name="gemini-2.5-flash", 
             generation_config={"response_mime_type": "application/json"}
         )
 
