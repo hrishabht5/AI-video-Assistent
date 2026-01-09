@@ -60,22 +60,22 @@ def GetHighlight(Transcription):
     try:
         print("Calling Gemini for multi-highlight selection...")
         genai.configure(api_key=api_key)
-
+        
         # improved system prompt for JSON validation
         full_system_prompt = system + "\nIMPORTANT: You must return ONLY valid JSON. No markdown formatting."
-
+        
         model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash", # Using 2.0 Flash for best speed/reliability
+            model_name="gemini-1.5-flash", # Use 1.5 Flash for much higher rate limits
             generation_config={"response_mime_type": "application/json"}
         )
 
         prompt_content = f"{full_system_prompt}\n\nInput:\n{Transcription}"
         response_obj = model.generate_content(prompt_content)
-
+        
         try:
             # Parse JSON response
             highlights = json.loads(response_obj.text)
-
+            
             # Ensure it's a list
             if not isinstance(highlights, list):
                 if isinstance(highlights, dict):
@@ -90,7 +90,7 @@ def GetHighlight(Transcription):
                     start = float(item.get('start', 0))
                     end = float(item.get('end', 0))
                     content = item.get('content', "")
-
+                    
                     if end > start and start >= 0:
                         valid_highlights.append({
                             'start': start,
@@ -102,19 +102,14 @@ def GetHighlight(Transcription):
 
             print(f"✓ Found {len(valid_highlights)} potential highlights.")
             return valid_highlights
-
+                
         except json.JSONDecodeError:
             print(f"ERROR: Failed to decode JSON from Gemini: {response_obj.text}")
             return []
-
+        
     except Exception as e:
-        print(f"Exception message: {str(e)}")
-        print(f"\nTranscription length: {len(Transcription)} characters")
-        print(f"First 200 chars: {Transcription[:200]}...")
-        print(f"{'='*60}\n")
-        import traceback
-        traceback.print_exc()
-        return None, None
+        print(f"ERROR: AI Highlight selection failed: {e}")
+        return []
 
 if __name__ == "__main__":
     print(GetHighlight(User))

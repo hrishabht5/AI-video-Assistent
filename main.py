@@ -100,8 +100,16 @@ if Vid:
             print(f"\n✓ Found {len(highlights)} segments to process.")
 
             for i, highlight in enumerate(highlights):
-                start = highlight['start']
-                stop = highlight['end']
+                if not isinstance(highlight, dict):
+                    print(f"Skipping invalid highlight {i+1}")
+                    continue
+                    
+                start = highlight.get('start')
+                stop = highlight.get('end')
+                
+                if start is None or stop is None:
+                    print(f"Skipping highlight {i+1} due to missing start/end")
+                    continue
                 
                 #handle the case when the highlight starts from 0s
                 if not (start>=0 and stop>0 and stop>start):
