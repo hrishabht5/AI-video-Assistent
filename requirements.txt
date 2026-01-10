@@ -97,3 +97,6 @@ webrtcvad-wheels==2.0.14
 yarl==1.20.0
 zstandard==0.25.0
 langchain-google-genai
+fastapi
+uvicorn
+python-multipart
