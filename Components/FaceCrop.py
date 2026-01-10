@@ -21,9 +21,9 @@ def crop_to_vertical(input_video_path, output_video_path):
     vertical_height = int(original_height)
     vertical_width = int(vertical_height * 9 / 16)
     
-    # Ensure vertical_width is even
-    if vertical_width % 2 != 0:
-        vertical_width -= 1
+    # Ensure dimensions are multiples of 4 for maximum codec compatibility (Crucial for H.264)
+    vertical_width = (vertical_width // 4) * 4
+    vertical_height = (vertical_height // 4) * 4
 
     print(f"Tracking & Cropping: {original_width}x{original_height} -> {vertical_width}x{vertical_height} vertical")
 
@@ -31,6 +31,15 @@ def crop_to_vertical(input_video_path, output_video_path):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (vertical_width, vertical_height))
     
+    if not out.isOpened():
+        print(f"Warning: Could not open VideoWriter with mp4v, trying XVID...")
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (vertical_width, vertical_height))
+
+    if not out.isOpened():
+        print("ERROR: Could not open VideoWriter with any codec.")
+        return
+
     global Fps
     Fps = fps
 
@@ -48,17 +57,20 @@ def crop_to_vertical(input_video_path, output_video_path):
         
         # Every 3 frames, look for a face (speeds up processing)
         if frame_count % 3 == 0:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            # Downscale for faster detection
-            small_gray = cv2.resize(gray, (0, 0), fx=0.5, fy=0.5)
-            faces = face_cascade.detectMultiScale(small_gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-            
-            if len(faces) > 0:
-                # Find the best face (largest one)
-                best_face = max(faces, key=lambda f: f[2] * f[3])
-                # Scale face center back to original size
-                face_x = (best_face[0] + best_face[2] // 2) * 2
-                target_center_x = face_x
+            try:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                # Downscale for faster detection
+                small_gray = cv2.resize(gray, (0, 0), fx=0.5, fy=0.5)
+                faces = face_cascade.detectMultiScale(small_gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+                
+                if len(faces) > 0:
+                    # Find the best face (largest one)
+                    best_face = max(faces, key=lambda f: f[2] * f[3])
+                    # Scale face center back to original size
+                    face_x = (best_face[0] + best_face[2] // 2) * 2
+                    target_center_x = face_x
+            except Exception as e:
+                print(f"Warning: Face detection failed at frame {frame_count}: {e}")
         
         # Smoothly move current_center_x towards target_center_x
         current_center_x = int(current_center_x + (target_center_x - current_center_x) * smoothing_factor)
@@ -70,27 +82,36 @@ def crop_to_vertical(input_video_path, output_video_path):
         # Perform the crop
         cropped_frame = frame[0:vertical_height, x_start:x_end]
         
-        # Handle edge cases where frame might be 1px off due to rounding
-        if cropped_frame.shape[1] != vertical_width:
+        # Ensure frame is exactly the right size for VideoWriter
+        if cropped_frame is None or cropped_frame.size == 0:
+            print(f"Warning: Empty crop at frame {frame_count}, skipping...")
+            continue
+
+        if cropped_frame.shape[1] != vertical_width or cropped_frame.shape[0] != vertical_height:
              cropped_frame = cv2.resize(cropped_frame, (vertical_width, vertical_height))
 
-        out.write(cropped_frame)
+        # Final check before writing
+        try:
+            if cropped_frame.shape[1] == vertical_width and cropped_frame.shape[0] == vertical_height:
+                out.write(cropped_frame)
+            else:
+                print(f"Warning: Frame {frame_count} size mismatch {cropped_frame.shape[:2]}, skipping...")
+        except Exception as e:
+            print(f"ERROR writing frame {frame_count}: {e}")
+            break
+
         frame_count += 1
         
-        if frame_count % 100 == 0:
-            print(f"Processed {frame_count}/{total_frames} frames (Tracking at x={current_center_x})")
-
     cap.release()
     out.release()
-    print(f"✓ Dynamic cropping complete for {output_video_path}")
-
-    cap.release()
-    out.release()
-    print(f"Cropping complete. Processed {frame_count} frames -> {output_video_path}")
+    print(f"✓ Dynamic cropping complete for {output_video_path}. Processed {frame_count} frames.")
 
 
 
 def combine_videos(video_with_audio, video_without_audio, output_filename):
+    clip_with_audio = None
+    clip_without_audio = None
+    combined_clip = None
     try:
         # Load video clips
         clip_with_audio = VideoFileClip(video_with_audio)
@@ -133,6 +154,14 @@ def combine_videos(video_with_audio, video_without_audio, output_filename):
     except Exception as e:
         print(f"Error combining video and audio: {str(e)}")
         return False
+    finally:
+        # Crucial for Windows to release file locks
+        try:
+            if 'clip_with_audio' in locals(): clip_with_audio.close()
+            if 'clip_without_audio' in locals(): clip_without_audio.close()
+            if 'combined_clip' in locals(): combined_clip.close()
+        except:
+            pass
 
 
 
