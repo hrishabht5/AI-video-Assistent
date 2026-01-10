@@ -1,6 +1,6 @@
 # AI YouTube Shorts Generator
 
-AI-powered tool to automatically generate engaging YouTube Shorts from long-form videos. Uses GPT-4o-mini and Whisper to extract highlights, add subtitles, and crop videos vertically for social media.
+AI-powered tool to automatically generate engaging YouTube Shorts from long-form videos. Uses Gemini 2.5 Flash and Whisper to extract multiple highlights, add subtitles, and crop videos vertically with **Active Face Tracking**.
 
 ![longshorts](https://github.com/user-attachments/assets/3f5d1abf-bf3b-475f-8abf-5e253003453a)
 
@@ -8,16 +8,24 @@ AI-powered tool to automatically generate engaging YouTube Shorts from long-form
 
 - **🎬 Flexible Input**: Supports both YouTube URLs and local video files
 - **🎤 GPU-Accelerated Transcription**: CUDA-enabled Whisper for fast speech-to-text
-- **🤖 AI Highlight Selection**: GPT-5-nano automatically finds the most engaging 2-minute segments
-- **✅ Interactive Approval**: Review and approve/regenerate selections with 15-second auto-approve timeout
-- **📝 Auto Subtitles**: Stylized captions with Franklin Gothic font burned into video
-- **🎯 Smart Cropping**: 
-  - **Face videos**: Static face-centered crop (no jerky movement)
-  - **Screen recordings**: Half-width display with smooth motion tracking (1 shift/second max)
+- **🤖 Multi-Highlight Selection**: Gemini 2.5 Flash finds up to **10 engaging segments** from a single video
+- **🎯 Active Face Tracking**: Smooth, real-time face detection that keeps the speaker centered in 9:16 crops
+- **📝 Auto Subtitles**: Stylized captions burned directly into the video
 - **📱 Vertical Format**: Perfect 9:16 aspect ratio for TikTok/YouTube Shorts/Instagram Reels
-- **⚙️ Automation Ready**: CLI arguments, auto-quality selection, timeout-based approvals
+- **🚀 Web API**: FastAPI integration for remote triggering and cloud deployment
 - **🔄 Concurrent Execution**: Unique session IDs allow multiple instances to run simultaneously
-- **📦 Clean Output**: Slugified filenames (e.g., `my-video-title_short.mp4`) and automatic temp file cleanup
+- **📦 Clean Output**: Slugified filenames and automatic temp file cleanup
+
+## ☁️ Cloud Hosting (Google Colab - FREE GPU)
+
+For the best experience and **free NVIDIA T4 GPU** acceleration, use the Google Colab setup:
+
+1. Open [Google Colab](https://colab.research.google.com/).
+2. Upload the `Google_Colab_Setup.ipynb` file from this repository.
+3. Follow the instructions in the notebook to:
+   - Install dependencies automatically.
+   - Run the generator with any YouTube URL.
+   - Download multiple zipped shorts at once.
 
 ## Installation
 
