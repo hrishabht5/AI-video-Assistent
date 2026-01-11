@@ -9,64 +9,27 @@ def get_video_size(stream):
 
 def download_youtube_video(url):
     try:
-        # Using standard YouTube call to avoid interactive OAuth prompts in headless API environments
-        yt = YouTube(url)
+        # Using MWEB client to bypass bot detection in headless environments
+        yt = YouTube(url, client='MWEB')
 
+        # Auto-select the best available video stream (up to 1080p for stability)
         video_streams = yt.streams.filter(type="video").order_by('resolution').desc()
-        audio_stream = yt.streams.filter(only_audio=True).first()
-
-        # Show available streams
-        print("\nAvailable video streams:")
-        top_streams = video_streams[:8]  # Show more options to find 1080p
-        for i, stream in enumerate(top_streams):
-            size = get_video_size(stream)
-            stream_type = "Progressive" if stream.is_progressive else "Adaptive"
-            print(f"  {i}. Resolution: {stream.resolution}, Size: {size:.2f} MB, Type: {stream_type}")
-        
-        # Interactive selection with timeout
-        import select
-        import sys
-        
-        # Try to find 1080p stream index for auto-select
-        auto_index = 0
-        for i, s in enumerate(top_streams):
-            if s.resolution == '1080p':
-                auto_index = i
-                break
-
-        print(f"\nSelect resolution number (0-{len(top_streams)-1}) or wait 5s for auto-select...")
-        print(f"Auto-selecting {top_streams[auto_index].resolution} quality in 5 seconds...")
         
         selected_stream = None
-        try:
-            ready, _, _ = select.select([sys.stdin], [], [], 5)
-            if ready:
-                user_input = sys.stdin.readline().strip()
-                if user_input.isdigit():
-                    choice = int(user_input)
-                    if 0 <= choice < len(top_streams):
-                        selected_stream = top_streams[choice]
-                        print(f"✓ User selected: {selected_stream.resolution}")
-                    else:
-                        print(f"Invalid choice, using {top_streams[auto_index].resolution} quality")
-                        selected_stream = top_streams[auto_index]
-                else:
-                    print(f"Invalid input, using {top_streams[auto_index].resolution} quality")
-                    selected_stream = top_streams[auto_index]
-            else:
-                print(f"\nTimeout - auto-selecting {top_streams[auto_index].resolution} quality")
-                selected_stream = top_streams[auto_index]
-        except:
-            print(f"\nAuto-selecting {top_streams[auto_index].resolution} quality (timeout not available on this platform)")
-            selected_stream = top_streams[auto_index]
+        # Try to find 1080p, else take the top one
+        for s in video_streams[:5]:
+            if s.resolution == '1080p':
+                selected_stream = s
+                break
         
-        # Confirm selection
-        if selected_stream is None:
-            selected_stream = top_streams[auto_index]
+        if not selected_stream:
+            selected_stream = video_streams.first()
+
+        audio_stream = yt.streams.filter(only_audio=True).first()
         
         size = get_video_size(selected_stream)
         stream_type = "Progressive" if selected_stream.is_progressive else "Adaptive"
-        print(f"\nFinal selection: {selected_stream.resolution}, Size: {size:.2f} MB, Type: {stream_type}")
+        print(f"Auto-selected quality: {selected_stream.resolution}, Size: {size:.2f} MB, Type: {stream_type}")
 
         if not os.path.exists('videos'):
             os.makedirs('videos')
