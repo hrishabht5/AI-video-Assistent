@@ -1,5 +1,5 @@
-# Use NVIDIA CUDA base image for GPU support
-FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+# Use a standard Python image for better cloud compatibility
+FROM python:3.10-slim
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -8,19 +8,18 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3.10-venv \
-    python3-pip \
     ffmpeg \
+    libavcodec-dev \
+    libavformat-dev \
     libavdevice-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
     libavfilter-dev \
-    libopus-dev \
-    libvpx-dev \
-    pkg-config \
-    libsrtp2-dev \
     imagemagick \
     git \
     wget \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix ImageMagick security policy for subtitle rendering
@@ -33,7 +32,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -41,11 +40,8 @@ COPY . .
 # Create output directory
 RUN mkdir -p /app/output
 
-# Set environment variable for CUDA library path
-ENV LD_LIBRARY_PATH=/usr/local/lib/python3.10/dist-packages/nvidia/cudnn/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cublas/lib:$LD_LIBRARY_PATH
+# Set the port (Render/Railway use the PORT env var)
+ENV PORT=8000
 
-# Make run.sh executable
-RUN chmod +x run.sh
-
-# Default command (can be overridden)
-CMD ["./run.sh"]
+# Start the FastAPI server
+CMD ["sh", "-c", "uvicorn api:app --host 0.0.0.0 --port ${PORT}"]
