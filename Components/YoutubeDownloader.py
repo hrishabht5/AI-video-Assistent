@@ -9,10 +9,9 @@ def get_video_size(stream):
 
 def download_youtube_video(url):
     try:
-        # Using 'MWEB' client + Forced Fresh OAuth - This is the last line of defense.
-        # It MUST give you a new login code to clear any previous 'Bot' flags.
-        print("\n--- INITIATING SECURE DOWNLOAD PROMPT ---")
-        yt = YouTube(url, client='MWEB', use_oauth=True, allow_oauth_cache=False)
+        # Using 'ANDROID' client + OAuth + PO Token - This is the current best bypass for 428/403 errors.
+        print("\n--- INITIATING SECURE DOWNLOAD (ANDROID CLIENT) ---")
+        yt = YouTube(url, client='ANDROID', use_oauth=True, use_po_token=True)
 
         # Auto-select the best available video stream (up to 1080p for stability)
         video_streams = yt.streams.filter(type="video").order_by('resolution').desc()
