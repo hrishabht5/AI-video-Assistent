@@ -9,8 +9,9 @@ def get_video_size(stream):
 
 def download_youtube_video(url):
     try:
-        # Using ANDROID client which is currently more reliable for bypassing bot detection in Colab
-        yt = YouTube(url, client='ANDROID')
+        # Using OAuth (Device Login) - This is the most reliable way to bypass bot detection.
+        # It will prompt you to go to google.com/device and enter a code.
+        yt = YouTube(url, client='WEB', use_oauth=True, allow_oauth_cache=True)
 
         # Auto-select the best available video stream (up to 1080p for stability)
         video_streams = yt.streams.filter(type="video").order_by('resolution').desc()
