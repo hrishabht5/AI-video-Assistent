@@ -9,8 +9,8 @@ def get_video_size(stream):
 
 def download_youtube_video(url):
     try:
-        # Using OAuth to bypass bot detection
-        yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
+        # Using standard YouTube call to avoid interactive OAuth prompts in headless API environments
+        yt = YouTube(url)
 
         video_streams = yt.streams.filter(type="video").order_by('resolution').desc()
         audio_stream = yt.streams.filter(only_audio=True).first()
