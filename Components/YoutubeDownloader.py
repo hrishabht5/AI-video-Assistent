@@ -9,9 +9,10 @@ def get_video_size(stream):
 
 def download_youtube_video(url):
     try:
-        # Using 'TV' client - Currently the MOST robust way to bypass 403 Forbidden on Cloud/Colab IPs.
-        # It will prompt for OAuth login at google.com/device.
-        yt = YouTube(url, client='TV', use_oauth=True, allow_oauth_cache=True)
+        # Using 'MWEB' client + Forced Fresh OAuth - This is the last line of defense.
+        # It MUST give you a new login code to clear any previous 'Bot' flags.
+        print("\n--- INITIATING SECURE DOWNLOAD PROMPT ---")
+        yt = YouTube(url, client='MWEB', use_oauth=True, allow_oauth_cache=False)
 
         # Auto-select the best available video stream (up to 1080p for stability)
         video_streams = yt.streams.filter(type="video").order_by('resolution').desc()
