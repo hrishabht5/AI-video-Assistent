@@ -1,5 +1,5 @@
-# Use a Bullseye-based image for older FFmpeg compatibility (required for av==11)
-FROM python:3.10-slim-bullseye
+# Use Bookworm (Stable) to get FFmpeg 5.1, which is the "Golden Version" for av==11
+FROM python:3.11-slim-bookworm
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
