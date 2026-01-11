@@ -9,8 +9,8 @@ def get_video_size(stream):
 
 def download_youtube_video(url):
     try:
-        # Using MWEB client to bypass bot detection in headless environments
-        yt = YouTube(url, client='MWEB')
+        # Using WEB client and PO Token as suggested by the error logs to bypass cloud bot detection
+        yt = YouTube(url, client='WEB', use_po_token=True)
 
         # Auto-select the best available video stream (up to 1080p for stability)
         video_streams = yt.streams.filter(type="video").order_by('resolution').desc()
