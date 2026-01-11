@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     pkg-config \
+    build-essential \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix ImageMagick security policy for subtitle rendering
