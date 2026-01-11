@@ -9,9 +9,10 @@ def get_video_size(stream):
 
 def download_youtube_video(url):
     try:
-        # Using 'ANDROID' client + OAuth + PO Token - This is the current best bypass for 428/403 errors.
-        print("\n--- INITIATING SECURE DOWNLOAD (ANDROID CLIENT) ---")
-        yt = YouTube(url, client='ANDROID', use_oauth=True, use_po_token=True)
+        # Using 'WEB' client + OAuth - Now that the library is updated, this is the standard reliable method.
+        # It handles the PO Token internally or bypasses it via OAuth.
+        print("\n--- INITIATING SECURE DOWNLOAD (WEB CLIENT) ---")
+        yt = YouTube(url, client='WEB', use_oauth=True)
 
         # Auto-select the best available video stream (up to 1080p for stability)
         video_streams = yt.streams.filter(type="video").order_by('resolution').desc()
