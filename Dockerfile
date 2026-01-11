@@ -1,5 +1,5 @@
-# Use a standard Python image for better cloud compatibility
-FROM python:3.10-slim
+# Use a Bullseye-based image for older FFmpeg compatibility (required for av==11)
+FROM python:3.10-slim-bullseye
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
