@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     build-essential \
     python3-dev \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix ImageMagick security policy for subtitle rendering
