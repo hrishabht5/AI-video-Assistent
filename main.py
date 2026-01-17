@@ -105,23 +105,19 @@ def process_video(url_or_file, auto_approve=False):
                     # Create unique temporary filenames for this segment
                     temp_clip = f"temp_clip_{session_id}_{i}.mp4"
                     temp_cropped = f"temp_cropped_{session_id}_{i}.mp4"
-                    temp_subtitled = f"temp_subtitled_{session_id}_{i}.mp4"
 
-                    print(f"Step 1/4 (Part {i+1}): Extracting clip from original video...")
+                    print(f"Step 1/3 (Part {i+1}): Extracting clip from original video...")
                     crop_video(Vid, temp_clip, start, stop)
 
-                    print(f"Step 2/4 (Part {i+1}): Cropping to vertical format (9:16) with Active Tracking...")
+                    print(f"Step 2/3 (Part {i+1}): Cropping to vertical format (9:16) with Active Tracking...")
                     crop_to_vertical(temp_clip, temp_cropped)
-                    
-                    print(f"Step 3/4 (Part {i+1}): Adding subtitles to video...")
-                    add_subtitles_to_video(temp_cropped, temp_subtitled, transcriptions, video_start_time=start)
                     
                     # Generate final output filename
                     clean_title = clean_filename(video_title) if video_title else "output"
                     final_output = f"{clean_title}_part{i+1}_{session_id}_short.mp4"
                     
-                    print(f"Step 4/4 (Part {i+1}): Adding audio to final video...")
-                    success = combine_videos(temp_clip, temp_subtitled, final_output)
+                    print(f"Step 3/3 (Part {i+1}): Adding audio to final video...")
+                    success = combine_videos(temp_clip, temp_cropped, final_output)
                     
                     if success:
                         print(f"\n✓ SUCCESS: Highlight {i+1} saved as {final_output}")
@@ -131,7 +127,7 @@ def process_video(url_or_file, auto_approve=False):
                     
                     # Clean up temporary files for this segment
                     try:
-                        for f in [temp_clip, temp_cropped, temp_subtitled]:
+                        for f in [temp_clip, temp_cropped]:
                             if os.path.exists(f):
                                 os.remove(f)
                     except Exception as e:
