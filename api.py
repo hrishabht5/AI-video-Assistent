@@ -42,8 +42,22 @@ def download_file(filename: str):
     raise HTTPException(status_code=404, detail="File not found")
 
 def run_processing(job_id: str, url: str, auto_approve: bool):
+    # Cloudinary Config
+    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+    CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+    PABBLY_WEBHOOK_URL = os.getenv("PABBLY_WEBHOOK_URL")
+
+    cloudinary_config = None
+    if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
+        cloudinary_config = {
+            "cloud_name": CLOUDINARY_CLOUD_NAME,
+            "api_key": CLOUDINARY_API_KEY,
+            "api_secret": CLOUDINARY_API_SECRET
+        }
+
     try:
-        output_files = process_video(url, auto_approve=auto_approve)
+        output_files = process_video(url, auto_approve=auto_approve, cloudinary_config=cloudinary_config, webhook_url=PABBLY_WEBHOOK_URL)
         jobs[job_id] = {"status": "completed", "files": output_files}
     except Exception as e:
         jobs[job_id] = {"status": "failed", "error": str(e)}

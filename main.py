@@ -3,7 +3,9 @@ from Components.Edit import extractAudio, crop_video
 from Components.Transcription import transcribeAudio
 from Components.LanguageTasks import GetHighlight
 from Components.FaceCrop import crop_to_vertical, combine_videos
+from Components.FaceCrop import crop_to_vertical, combine_videos
 from Components.Subtitles import add_subtitles_to_video
+from Components.Uploader import upload_video, trigger_webhook
 import sys
 import os
 import uuid
@@ -24,7 +26,7 @@ def clean_filename(title):
     # Limit length
     return cleaned[:80]
 
-def process_video(url_or_file, auto_approve=False):
+def process_video(url_or_file, auto_approve=False, cloudinary_config=None, webhook_url=None):
     # Generate unique session ID for this run (for concurrent execution support)
     session_id = str(uuid.uuid4())[:8]
     print(f"Session ID: {session_id}")
@@ -122,6 +124,25 @@ def process_video(url_or_file, auto_approve=False):
                     if success:
                         print(f"\n✓ SUCCESS: Highlight {i+1} saved as {final_output}")
                         output_files.append(final_output)
+
+                        # Cloudinary Upload & Webhook Trigger
+                        if cloudinary_config:
+                            print(f"Uploading {final_output} to Cloudinary...")
+                            video_url = upload_video(final_output, 
+                                                   cloudinary_config['cloud_name'], 
+                                                   cloudinary_config['api_key'], 
+                                                   cloudinary_config['api_secret'])
+                            
+                            if video_url:
+                                if webhook_url:
+                                    trigger_webhook(webhook_url, video_url, {"original_title": video_title})
+                                
+                                # Delete local file after successful upload
+                                print(f"Deleting local file {final_output}...")
+                                os.remove(final_output)
+                            else:
+                                print("Skipping deletion because upload failed.")
+
                     else:
                         print(f"\n✗ FAILED: Could not create Highlight {i+1}")
                     
@@ -165,4 +186,23 @@ if __name__ == "__main__":
     else:
         url_or_file = input("Enter YouTube video URL or local video file path: ")
 
-    process_video(url_or_file, auto_approve=auto_approve)
+    # Cloudinary Config (Get from Env or Input)
+    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+    CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+    PABBLY_WEBHOOK_URL = os.getenv("PABBLY_WEBHOOK_URL")
+
+    # If not in env, ask user (optional, or better to just rely on env in Colab)
+    # in Colab: from google.colab import userdata; userdata.get('...')
+    
+    cloudinary_config = None
+    if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
+        cloudinary_config = {
+            "cloud_name": CLOUDINARY_CLOUD_NAME,
+            "api_key": CLOUDINARY_API_KEY,
+            "api_secret": CLOUDINARY_API_SECRET
+        }
+    else:
+        print("Warning: Cloudinary credentials not found in environment variables. Upload will be skipped.")
+
+    process_video(url_or_file, auto_approve=auto_approve, cloudinary_config=cloudinary_config, webhook_url=PABBLY_WEBHOOK_URL)
