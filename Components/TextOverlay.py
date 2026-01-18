@@ -1,4 +1,4 @@
-from moviepy.editor import *
+from moviepy import VideoFileClip, TextClip, CompositeVideoClip
 from Transcription import transcribeAudio
 import re
 import math
@@ -77,14 +77,14 @@ class EnhancedTextOverlay:
             )
             
             # Set timing and position
-            txt_clip = txt_clip.set_start(start_time).set_duration(duration)
+            txt_clip = txt_clip.with_start(start_time).with_duration(duration)
             
             # Set position
             if config['position'] == ('center', 'bottom'):
                 y_pos = self.video.h - config['margin_bottom'] - txt_clip.h
-                txt_clip = txt_clip.set_position(('center', y_pos))
+                txt_clip = txt_clip.with_position(('center', y_pos))
             else:
-                txt_clip = txt_clip.set_position(config['position'])
+                txt_clip = txt_clip.with_position(config['position'])
             
             # Add fade animation
             if config['animation_style'] == 'fade' and config['fade_duration'] > 0:

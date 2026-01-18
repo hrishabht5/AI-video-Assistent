@@ -1,4 +1,6 @@
-from moviepy import VideoFileClip, TextClip, CompositeVideoClip
+from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy.video.VideoClip import TextClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 import re
 
 def add_subtitles_to_video(input_video, output_video, transcriptions, video_start_time=0):
