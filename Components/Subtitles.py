@@ -1,4 +1,4 @@
-from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+from moviepy import VideoFileClip, TextClip, CompositeVideoClip
 import re
 
 def add_subtitles_to_video(input_video, output_video, transcriptions, video_start_time=0):
@@ -60,9 +60,9 @@ def add_subtitles_to_video(input_video, output_video, transcriptions, video_star
             )
             
             # Position at bottom center
-            txt_clip = txt_clip.set_position(('center', video.h - txt_clip.h - 100))
-            txt_clip = txt_clip.set_start(start)
-            txt_clip = txt_clip.set_duration(end - start)
+            txt_clip = txt_clip.with_position(('center', video.h - txt_clip.h - 100))
+            txt_clip = txt_clip.with_start(start)
+            txt_clip = txt_clip.with_duration(end - start)
             
             text_clips.append(txt_clip)
         except Exception as e:

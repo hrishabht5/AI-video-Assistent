@@ -22,7 +22,7 @@ def crop_video(input_file, output_file, start_time, end_time):
             print(f"Warning: Requested end time ({end_time}s) exceeds video duration ({video.duration}s). Capping to {max_time}s")
             end_time = max_time
         
-        cropped_video = video.subclip(start_time, end_time)
+        cropped_video = video.subclipped(start_time, end_time)
         # Using a fast preset to speed up re-encoding
         cropped_video.write_videofile(output_file, codec='libx264', preset='ultrafast', logger=None)
 

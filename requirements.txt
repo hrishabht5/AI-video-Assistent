@@ -2,7 +2,7 @@ fastapi
 uvicorn
 pydantic
 yt-dlp
-moviepy==1.0.3
+moviepy>=2.1.2
 SpeechRecognition
 pydub
 requests
@@ -13,8 +13,8 @@ faster-whisper
 google-generativeai
 python-dotenv
 opencv-python
-numpy<2.0.0
+numpy
 pytubefix
-imageio==2.35.1
+imageio>=2.36.0
 cloudinary
 webrtcvad
