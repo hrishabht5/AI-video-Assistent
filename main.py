@@ -26,7 +26,7 @@ def clean_filename(title):
     # Limit length
     return cleaned[:80]
 
-def process_video(url_or_file, auto_approve=False, cloudinary_config=None, webhook_url=None):
+def process_video(url_or_file, auto_approve=False, cloudinary_config=None, webhook_url=None, category=None):
     # Generate unique session ID for this run (for concurrent execution support)
     session_id = str(uuid.uuid4())[:8]
     print(f"Session ID: {session_id}")
@@ -135,7 +135,10 @@ def process_video(url_or_file, auto_approve=False, cloudinary_config=None, webho
                             
                             if video_url:
                                 if webhook_url:
-                                    trigger_webhook(webhook_url, video_url, {"original_title": video_title})
+                                    webhook_data = {"original_title": video_title}
+                                    if category:
+                                        webhook_data["category"] = category
+                                    trigger_webhook(webhook_url, video_url, webhook_data)
                                 
                                 # Delete local file after successful upload
                                 print(f"Deleting local file {final_output}...")
@@ -179,6 +182,15 @@ if __name__ == "__main__":
     if auto_approve:
         sys.argv.remove("--auto-approve")
 
+    # Check for category argument
+    category = None
+    if "--category" in sys.argv:
+        idx = sys.argv.index("--category")
+        if len(sys.argv) > idx + 1:
+            category = sys.argv[idx + 1]
+            sys.argv.pop(idx + 1)
+            sys.argv.pop(idx)
+
     # Check if URL/file was provided as command-line argument
     if len(sys.argv) > 1:
         url_or_file = sys.argv[1]
@@ -205,4 +217,4 @@ if __name__ == "__main__":
     else:
         print("Warning: Cloudinary credentials not found in environment variables. Upload will be skipped.")
 
-    process_video(url_or_file, auto_approve=auto_approve, cloudinary_config=cloudinary_config, webhook_url=PABBLY_WEBHOOK_URL)
+    process_video(url_or_file, auto_approve=auto_approve, cloudinary_config=cloudinary_config, webhook_url=PABBLY_WEBHOOK_URL, category=category)
