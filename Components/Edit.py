@@ -1,5 +1,6 @@
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import subprocess
+import os
 
 def extractAudio(video_path, audio_path="audio.wav"):
     try:
@@ -23,7 +24,22 @@ def crop_video(input_file, output_file, start_time, end_time):
         
         cropped_video = video.subclipped(start_time, end_time)
         # Using a fast preset to speed up re-encoding
-        cropped_video.write_videofile(output_file, codec='libx264', preset='ultrafast', logger=None)
+        try:
+            print("Attempting hardware acceleration (NVENC)...")
+            cropped_video.write_videofile(
+                output_file, 
+                codec='h264_nvenc', 
+                audio_codec='aac',
+                logger=None
+            )
+        except Exception as e:
+            print(f"NVENC failed ({e}), falling back to CPU (libx264 ultrafast)...")
+            cropped_video.write_videofile(
+                output_file, 
+                codec='libx264', 
+                preset='ultrafast', 
+                logger=None
+            )
 
 # Example usage:
 if __name__ == "__main__":
