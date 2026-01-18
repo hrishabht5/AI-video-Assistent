@@ -26,7 +26,7 @@ class JSONResponse(BaseModel):
 
 system = """
 The input contains a timestamped transcription of a video.
-Select up to 10 interesting, useful, or thought-provoking segments from the transcription.
+Select all the interesting, useful, or thought-provoking segments from the transcription.
 Each segment should be between 30 to 90 seconds-long.
 The selected text should contain only complete sentences.
 Do not cut the sentences in the middle.
