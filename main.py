@@ -102,6 +102,8 @@ def process_video(url_or_file, auto_approve=False, cloudinary_config=None, webho
                     print(f"\n{'='*60}")
                     print(f"PROCESSING HIGHLIGHT {i+1}/{len(highlights)}")
                     print(f"Time: {start}s - {stop}s ({stop-start}s duration)")
+                    print(f"Engagement Score: {highlight.get('score', 'N/A')}/10")
+                    print(f"Reason: {highlight.get('reason', 'N/A')}")
                     print(f"{'='*60}\n")
 
                     # Create unique temporary filenames for this segment

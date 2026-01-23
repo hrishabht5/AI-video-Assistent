@@ -16,30 +16,46 @@ class JSONResponse(BaseModel):
         {
         start: "Start time of the clip",
         content: "Highlight Text",
-        end: "End Time for the highlighted clip"
+        end: "End Time for the highlighted clip",
+        score: "Engagement score between 1-10",
+        reason: "Brief reason why this is engaging"
         }
      ]
     """
     start: float = Field(description="Start time of the clip")
     content: str= Field(description="Highlight Text")
     end: float = Field(description="End time for the highlighted clip")
+    score: int = Field(description="Engagement score between 1-10", ge=1, le=10)
+    reason: str = Field(description="Brief reason why this is engaging")
 
 system = """
 The input contains a timestamped transcription of a video.
-Select up to 10 interesting, useful, or thought-provoking segments from the transcription.
+Identify the MOST ENGAGING, VIRAL-POTENTIAL segments for YouTube Shorts.
+
+Criteria for High Engagement (Score 8-10):
+- Hook: The segment starts with a strong statement, question, or surprising fact.
+- Value: Provides a clear, standalone tip, joke, or thought-provoking point.
+- Energy: The tone is energetic, emotional, or authoritative.
+- Completeness: Forms a perfect "Micro-Story" with a clear beginning and end.
+
+Criteria for Filtering (DO NOT SELECT):
+- filler words (um, ah, like, you know).
+- repetitive information.
+- internal housekeeping (e.g., "like and subscribe" unless it's done ironically/funny).
+- sections with low energy or off-topic rambling.
+
 Each segment should be between 30 to 90 seconds-long.
-The selected text should contain only complete sentences.
-Do not cut the sentences in the middle.
-The selected text should form a complete thought.
+The selected text should contain only complete sentences. Do not cut sentences in the middle.
 
 Return a JSON array of objects with the following structure:
 [
   {
-    "start": Start time of the segment in seconds (number),
-    "content": "The transcribed text from the selected segment (clean text only, NO timestamps)",
-    "end": End time of the segment in seconds (number)
-  },
-  ...
+    "start": number,
+    "content": "string",
+    "end": number,
+    "score": number (1-10),
+    "reason": "string"
+  }
 ]
 """
 
@@ -90,15 +106,22 @@ def GetHighlight(Transcription):
                     start = float(item.get('start', 0))
                     end = float(item.get('end', 0))
                     content = item.get('content', "")
+                    score = int(item.get('score', 0))
+                    reason = item.get('reason', "")
                     
                     if end > start and start >= 0:
                         valid_highlights.append({
                             'start': start,
                             'end': end,
-                            'content': content
+                            'content': content,
+                            'score': score,
+                            'reason': reason
                         })
                 except (ValueError, TypeError):
                     continue
+
+            # Sort by score descending
+            valid_highlights.sort(key=lambda x: x['score'], reverse=True)
 
             print(f"✓ Found {len(valid_highlights)} potential highlights.")
             return valid_highlights
