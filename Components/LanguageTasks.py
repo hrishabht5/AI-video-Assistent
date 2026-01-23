@@ -43,7 +43,6 @@ Criteria for Filtering (DO NOT SELECT):
 - repetitive information.
 - internal housekeeping (e.g., "like and subscribe" unless it's done ironically/funny).
 - sections with low energy or off-topic rambling.
-
 Each segment should be between 30 to 90 seconds-long.
 The selected text should contain only complete sentences. Do not cut sentences in the middle.
 
